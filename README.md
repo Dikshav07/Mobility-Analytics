@@ -182,5 +182,13 @@ python producer/traffic_dirty_producer.py
 ```
 ---
 
+## Result
+<img width="1241" height="759" alt="Image" src="https://github.com/user-attachments/assets/089c5f1c-fdf6-47c1-9e08-5dfc31ffe5f4" />
+
+<img width="1394" height="661" alt="Image" src="https://github.com/user-attachments/assets/c74dd98e-42c3-4087-863e-613699be1b4c" />
+
+<img width="1853" height="880" alt="Image" src="https://github.com/user-attachments/assets/8021cfac-4f3f-45b1-a7bf-af9c120e962b" />
+
+<img width="1633" height="674" alt="Image" src="https://github.com/user-attachments/assets/a6b9573c-8205-423b-b54a-8075adbd9ed4" />
 
 
