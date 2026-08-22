@@ -1,0 +1,43 @@
+# Install tools for Producer
+pip install kafka-python faker pytz
+
+# Create Kafka Topic
+docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic traffic-topic --bootstrap-server kafka:9092 --partitions 3 --replication-factor 1
+
+# Run Bronze Transformation
+docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_bronze.py
+
+# Run Silver Transformation
+docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_silver.py
+
+# Run Gold Transformation
+docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_gold.py
+
+#Spark SQL Connect to metastore
+docker exec -it spark-worker bash
+
+mkdir -p /tmp/spark-warehouse
+chmod -R 777 /tmp/spark-warehouse
+
+/opt/spark/bin/spark-sql \
+--packages io.delta:delta-spark_2.12:3.2.0 \
+--conf spark.jars.ivy=/tmp/.ivy \
+--conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
+--conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
+--conf spark.sql.catalogImplementation=hive \
+--conf spark.hadoop.hive.metastore.uris=thrift://hive-metastore:9083 \
+--conf spark.sql.warehouse.dir=/tmp/spark-warehouse
+
+#Establish Thrift Server
+cd /opt/spark/jars
+
+wget https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar
+wget https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar
+
+/opt/spark/sbin/start-thriftserver.sh \
+--master spark://spark-master:7077 \
+--conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
+--conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
+--conf spark.sql.catalogImplementation=hive \
+--conf spark.hadoop.hive.metastore.uris=thrift://hive-metastore:9083 \
+--conf spark.sql.warehouse.dir=/opt/spark/warehouse
