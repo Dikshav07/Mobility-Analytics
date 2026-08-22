@@ -157,18 +157,6 @@ mkdir -p /tmp/spark-warehouse && chmod -R 777 /tmp/spark-warehouse
 - 9 dirty event categories
 - 1 Hive metastore DB
 
----
-
-## 13. Data Flow Summary
-
-### Step-by-step flow
-1. Synthetic traffic events are produced with random values and occasional corruption.
-2. Kafka receives them under the traffic-topic topic.
-3. Spark reads the topic in streaming mode.
-4. Bronze stage writes raw event data to Delta Lake.
-5. Silver stage filters bad rows and enriches valid ones.
-6. Gold stage joins and materializes dimensions and fact records.
-7. The data becomes available for business reporting, dashboards, and analytical SQL.
 
 ---
 
