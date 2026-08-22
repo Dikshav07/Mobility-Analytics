@@ -1,8 +1,8 @@
 # Mobility Analytics
 
-A real-time mobility intelligence pipeline built on Apache Kafka, Apache Spark Structured Streaming, Delta Lake, and Hive Metastore. The project simulates traffic events from a producer, ingests them into Kafka, validates and enriches them through a bronze-silver-gold data pipeline, and stores curated datasets in Delta tables for reporting and analytics.
+A real-time mobility intelligence pipeline built on Apache Kafka, Spark Structured Streaming, Delta Lake, and Hive Metastore. Simulates traffic events, ingests them via Kafka, and validates/enriches them through a bronze-silver-gold pipeline into curated Delta tables for reporting and analytics.
 
-This repository is designed as a practical lakehouse implementation for smart transportation analytics, with an emphasis on streaming data quality, event processing, and dimensional modeling.
+A practical lakehouse implementation for smart transportation analytics — emphasizing streaming data quality, event processing, and dimensional modeling.
 
 ---
 
@@ -51,34 +51,7 @@ Producer -> Kafka topic -> Bronze Delta -> Silver Delta -> Gold Delta -> BI/Repo
 
 ---
 
-## 5. Project Structure
 
-```text
-mobility-analytics/
-├── apps/
-│   ├── traffic_bronze.py
-│   ├── traffic_silver.py
-│   └── traffic_gold.py
-├── producer/
-│   └── traffic_dirty_producer.py
-├── hive-conf/
-│   └── hive-site.xml
-├── spark-ivy/
-│   ├── cache/
-│   └── jars/
-├── warehouse/
-│   ├── chk/
-│   ├── dim_road/
-│   ├── dim_zone/
-│   ├── fact_traffic/
-│   ├── traffic_bronze/
-│   └── traffic_silver/
-├── commands.txt
-├── docker-compose.yml
-├── SQL.txt
-├── README.md
-└── .gitignore (if present in environment)
-```
 
 
 ## 6. Data Model
@@ -129,76 +102,48 @@ Applies data-quality transforms on the Bronze stream: casts/validates speed and 
 ### 8.4 Gold Layer
 Builds analytics-ready star schema: `dim_zone`, `dim_road`, `fact_traffic` — feeding BI/reporting.
 
-
+---
 
 ## 10. Example Commands
 
-The project includes the commands used to set up and run the pipeline.
-
-### Install Python dependencies
+**Install deps**
 ```bash
 pip install kafka-python faker pytz
 ```
 
-### Create Kafka topic
+**Create Kafka topic**
 ```bash
 docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic traffic-topic --bootstrap-server kafka:9092 --partitions 3 --replication-factor 1
 ```
 
-### Run Bronze job
+**Run Bronze / Silver / Gold jobs**
 ```bash
 docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_bronze.py
 ```
+*(swap `traffic_bronze.py` → `traffic_silver.py` / `traffic_gold.py` for the other layers)*
 
-### Run Silver job
-```bash
-docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_silver.py
-```
-
-### Run Gold job
-```bash
-docker exec -it spark-worker /opt/spark/bin/spark-submit --conf spark.jars.ivy=/tmp/.ivy --packages io.delta:delta-spark_2.12:3.2.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 /opt/spark-apps/traffic_gold.py
-```
-
-### Start Spark SQL with Hive metastore
+**Start Spark SQL with Hive metastore**
 ```bash
 docker exec -it spark-worker bash
-
-mkdir -p /tmp/spark-warehouse
-chmod -R 777 /tmp/spark-warehouse
-
+mkdir -p /tmp/spark-warehouse && chmod -R 777 /tmp/spark-warehouse
 /opt/spark/bin/spark-sql \
---packages io.delta:delta-spark_2.12:3.2.0 \
---conf spark.jars.ivy=/tmp/.ivy \
---conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
---conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
---conf spark.sql.catalogImplementation=hive \
---conf spark.hadoop.hive.metastore.uris=thrift://hive-metastore:9083 \
---conf spark.sql.warehouse.dir=/tmp/spark-warehouse
+  --packages io.delta:delta-spark_2.12:3.2.0 \
+  --conf spark.jars.ivy=/tmp/.ivy \
+  --conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
+  --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
+  --conf spark.sql.catalogImplementation=hive \
+  --conf spark.hadoop.hive.metastore.uris=thrift://hive-metastore:9083 \
+  --conf spark.sql.warehouse.dir=/tmp/spark-warehouse
 ```
-
 ---
 
 ## 11. Metadata and Analytics SQL
 
-The project includes SQL definitions for creating a Hive/Delta-backed analytics database and views.
+**Tables:** `mobility.fact_traffic`, `mobility.dim_zone`, `mobility.dim_road`
 
-### Tables created
-- mobility.fact_traffic
-- mobility.dim_zone
-- mobility.dim_road
+**BI views:** `bi_fact_traffic`, `bi_dim_zone`, `bi_dim_road` — standardize column names, types, and date fields for downstream BI consistency
 
-### Analytics views created
-- bi_fact_traffic
-- bi_dim_zone
-- bi_dim_road
-
-These views standardize column names, types, and date fields to make reporting easier and consistent for downstream BI tools.
-
-### Typical queries included
-- COUNT(*) over fact_traffic
-- preview dim_road
-- preview dim_zone
+**Sample queries:** `COUNT(*)` on `fact_traffic`, previews on `dim_road`/`dim_zone`
 
 ---
 
@@ -230,12 +175,6 @@ These views standardize column names, types, and date fields to make reporting e
 
 ## 15. How to Run the Project
 
-### Prerequisites
-- Docker Desktop or Docker Engine
-- Python 3
-- access to Docker Compose
-- enough resources to run Spark, Kafka, and Postgres containers
-
 ### Startup steps
 1. Start the Docker environment:
 ```bash
@@ -253,12 +192,6 @@ pip install kafka-python faker pytz
 ```bash
 python producer/traffic_dirty_producer.py
 ```
-5. Submit Spark jobs in order:
-- Bronze
-- Silver
-- Gold
-6. Query Delta tables using Spark SQL / Hive SQL.
-
 ---
 
 
